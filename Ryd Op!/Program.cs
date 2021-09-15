@@ -11,152 +11,113 @@ namespace WMIApp
     {
         static void Main(string[] args)
         {
-            GetDiskMetadata();
-            GetHardDiskSerialNumber();
+            Manager manager = new Manager();
 
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_PerfFormattedData_PerfOS_Processor");
-            foreach (ManagementObject obj in searcher.Get())
+            #region CPUinfo
+            Console.WriteLine("Press any key to display CPU info");
+            Console.ReadKey();
+            string[,] cpuUse = manager.CPUInfo();
+            for (int i = 0; i < cpuUse.GetLength(0); i++)
             {
-                var usage = obj["PercentProcessorTime"];
-                var name = obj["Name"];
-                Console.WriteLine(name + " : " + usage);
-                Console.WriteLine("CPU");
+                Console.WriteLine("CPU {0} : {1}", cpuUse[i, 0], cpuUse[i, 1]);
             }
+            Console.WriteLine("---------------------------------------------------");
+            #endregion
 
-            hovedLager();
-            test();
-            testhest();
+            #region User Info
+            Console.WriteLine("Press any key to display User info");
+            Console.ReadKey();
+            string[,] userInfo = manager.UserInfoTest();
+            for (int i = 0; i < userInfo.GetLength(0); i++)
+            {
+                Console.WriteLine("User:\t{0}", userInfo[i, 0]);
+                Console.WriteLine("Org.:\t{0}", userInfo[i, 1]);
+                Console.WriteLine("O/S :\t{0}", userInfo[i, 2]);
+            }
+            Console.WriteLine("---------------------------------------------------");
+            #endregion
 
-            Console.WriteLine("process søgmimg");
-            LISTAllServices();
-
-
-
-
-
+            #region Get disk info
+            string[] bootDevice;
+            string[,] diskMeta;
+            string diskSerial;
+            manager.DiskInfo(out bootDevice, out diskMeta, out diskSerial);
+            
+            Console.WriteLine("Press any key to display Disk info");
             Console.ReadKey();
 
-        } //Slut main
 
-       static void test()
-        {
-            ObjectQuery wql = new ObjectQuery("SELECT * FROM Win32_OperatingSystem");
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wql);
-            ManagementObjectCollection results = searcher.Get();
-            foreach (ManagementObject result in results)
+            // Display Boot Device
+            for (int i = 0; i < bootDevice.Length; i++)
             {
-                Console.WriteLine("User:\t{0}", result["RegisteredUser"]);
-                Console.WriteLine("Org.:\t{0}", result["Organization"]);
-                Console.WriteLine("O/S :\t{0}", result["Name"]);
+                Console.WriteLine("Boot Device : {0}", bootDevice[i]); 
             }
+            Console.WriteLine();
 
-        }
-
-        static void testhest()
-        {
-            Console.WriteLine("testhest start");
-            ManagementScope scope = new ManagementScope("\\\\.\\ROOT\\cimv2");
-
-            //create object query
-            ObjectQuery query = new ObjectQuery("SELECT * FROM Win32_OperatingSystem");
-
-            //create object searcher
-            ManagementObjectSearcher searcher =
-                                    new ManagementObjectSearcher(scope, query);
-
-            //get a collection of WMI objects
-            ManagementObjectCollection queryCollection = searcher.Get();
-
-            //enumerate the collection.
-            foreach (ManagementObject m in queryCollection)
+            // Display disk meta data
+            for (int i = 0; i < diskMeta.GetLength(0); i++)
             {
-                // access properties of the WMI object
-                Console.WriteLine("BootDevice : {0}", m["BootDevice"]);
-
+                Console.WriteLine("Disk Name : {0}", diskMeta[i, 0]);
+                Console.WriteLine("FreeSpace: {0}gb", diskMeta[i, 1]);
+                Console.WriteLine("Disk Size: {0}gb", diskMeta[i, 2]); 
             }
-            Console.WriteLine("testhest slut");
+            Console.WriteLine();
+
+            // Display disk serial number
+            Console.WriteLine("Disk Serial number : {0}", diskSerial);
+            Console.WriteLine("---------------------------------------------------");
+
+            #endregion
 
 
-        }
+            #region Get Memory info
+            string[] memInfo = manager.GetMemoryInfo();
+            Console.WriteLine("Press any key to display Memory info");
+            Console.ReadKey();
 
-        static void hovedLager()
-        {
-            ObjectQuery wql = new ObjectQuery("SELECT * FROM Win32_OperatingSystem");
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wql);
-            ManagementObjectCollection results = searcher.Get();
+            Console.WriteLine("Total Visible Memory: {0}KB", memInfo[0]);
+            Console.WriteLine("Free Physical Memory: {0}KB", memInfo[1]);
+            Console.WriteLine("Total Virtual Memory: {0}KB", memInfo[2]);
+            Console.WriteLine("Free Virtual Memory: {0}KB", memInfo[3]);
 
-            foreach (ManagementObject result in results)
+            Console.WriteLine("---------------------------------------------------");
+            #endregion
+
+
+            #region List All Services
+            ManagementObjectCollection services = manager.ListAllServices();
+            Console.WriteLine("Press any key to display all running services");
+            Console.ReadKey();
+
+            Console.WriteLine("---------------------------------------");
+            Console.WriteLine("There are {0} Windows services: ", services.Count);
+            Console.WriteLine("---------------------------------------");
+            manager.ListAllServices();
+
+            // display services
+            foreach (ManagementObject windowsService in services)
             {
-                Console.WriteLine("Total Visible Memory: {0}KB", result["TotalVisibleMemorySize"]);
-                Console.WriteLine("Free Physical Memory: {0}KB", result["FreePhysicalMemory"]);
-                Console.WriteLine("Total Virtual Memory: {0}KB", result["TotalVirtualMemorySize"]);
-                Console.WriteLine("Free Virtual Memory: {0}KB", result["FreeVirtualMemory"]);
-            }
-
-        }
-
-
-        static void GetDiskMetadata()
-        {
-
-            System.Management.ManagementScope managementScope = new System.Management.ManagementScope();
-
-            System.Management.ObjectQuery objectQuery = new System.Management.ObjectQuery("select FreeSpace,Size,Name from Win32_LogicalDisk where DriveType=3");
-
-            ManagementObjectSearcher managementObjectSearcher = new ManagementObjectSearcher(managementScope, objectQuery);
-
-            ManagementObjectCollection managementObjectCollection = managementObjectSearcher.Get();
-
-            foreach (ManagementObject managementObject in managementObjectCollection)
-
-            {
-
-                Console.WriteLine("Disk Name : " + managementObject["Name"].ToString());
-
-                Console.WriteLine("FreeSpace: " + managementObject["FreeSpace"].ToString());
-
-                Console.WriteLine("Disk Size: " + managementObject["Size"].ToString());
-
+                Console.WriteLine("Press any key to display next services");
+                Console.ReadKey();
                 Console.WriteLine("---------------------------------------------------");
-
-            }
-
-        }
-
-        static string GetHardDiskSerialNumber(string drive = "C")
-
-        {
-
-            ManagementObject managementObject = new ManagementObject("Win32_LogicalDisk.DeviceID=\"" + drive + ":\"");
-
-            managementObject.Get();
-            Console.WriteLine(managementObject["VolumeSerialNumber"].ToString());
-
-            return managementObject["VolumeSerialNumber"].ToString();
-
-        }
-
-        private static void LISTAllServices()
-        {
-            ManagementObjectSearcher windowsServicesSearcher = new ManagementObjectSearcher("root\\cimv2", "select * from Win32_Service");
-            ManagementObjectCollection objectCollection = windowsServicesSearcher.Get();
-
-            Console.WriteLine("There are {0} Windows services: ", objectCollection.Count);
-
-            foreach (ManagementObject windowsService in objectCollection)
-            {
                 PropertyDataCollection serviceProperties = windowsService.Properties;
                 foreach (PropertyData serviceProperty in serviceProperties)
                 {
                     if (serviceProperty.Value != null)
                     {
-                        Console.WriteLine("Windows service property name: {0}", serviceProperty.Name);
-                        Console.WriteLine("Windows service property value: {0}", serviceProperty.Value);
+                        Console.WriteLine("{0}: {1}", serviceProperty.Name, serviceProperty.Value);
                     }
                 }
-                Console.WriteLine("---------------------------------------");
+                Console.WriteLine("---------------------------------------------------");
+                
             }
-        }
-    }
+            #endregion
 
+
+            Console.ReadKey();
+
+        } // End of Main
+
+
+    }
 }
